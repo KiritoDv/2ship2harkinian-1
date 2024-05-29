@@ -150,6 +150,8 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
             XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY ""
             XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "NO"
         )
+    else()
+        set(CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "TEAM-ID")
     endif()
 endif()
 
