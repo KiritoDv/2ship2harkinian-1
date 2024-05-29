@@ -333,6 +333,13 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	set_target_properties(${PROJECT_NAME} PROPERTIES
 		INTERPROCEDURAL_OPTIMIZATION_RELEASE "TRUE"
 	)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    if(NOT CMAKE_XCODE_ATTRIBUTE_INSTALL_PATH)
+        get_target_property(existing_install_path ${PROJECT_NAME} XCODE_ATTRIBUTE_INSTALL_PATH)
+        if(NOT existing_install_path)
+            set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_ATTRIBUTE_INSTALL_PATH "$(inherited)")
+        endif()
+    endif()
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set_target_properties(${PROJECT_NAME} PROPERTIES
         XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES
