@@ -51,6 +51,12 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS_RELEASE "")
 endif()
 
+if(${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
+    get_property(IOS_TOOLCHAIN_FILE GLOBAL PROPERTY IOS_TOOLCHAIN_FILE)
+    include(${IOS_TOOLCHAIN_FILE})
+    set(PROJECT_ID "dev.hm64.soh")
+endif()
+
 ################################################################################
 # Global linker options
 ################################################################################
@@ -92,7 +98,7 @@ if (NOT TARGET libultraship)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../libultraship ${CMAKE_BINARY_DIR}/libultraship)
 endif()
 
-if (NOT TARGET ZAPDLib)
+if (NOT TARGET ZAPDLib AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../ZAPDTR/ZAPD ${CMAKE_BINARY_DIR}/ZAPD)
 endif()
 
@@ -292,7 +298,27 @@ set(ALL_FILES
 ################################################################################
 # Target
 ################################################################################
-add_executable(${PROJECT_NAME} ${ALL_FILES})
+if (CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    set(IOS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ios)
+
+    set(STORYBOARD_FILE ${IOS_DIR}/Launch.storyboard)
+    set(IMAGE_FILES ${IOS_DIR}/PoweredBy.png)
+    set(ICON_FILES ${IOS_DIR}/2s2hIcon.png)
+
+    list(APPEND ALL_FILES ${STORYBOARD_FILE} ${IMAGE_FILES} ${ICON_FILES})
+
+    add_executable(${PROJECT_NAME} ${ALL_FILES})
+    set_xcode_property(${PROJECT_NAME} PRODUCT_BUNDLE_IDENTIFIER ${PROJECT_ID} All)
+    set_target_properties(
+        ${PROJECT_NAME}
+        PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_INFO_PLIST ${IOS_DIR}/plist.in
+        RESOURCE "${IMAGE_FILES};${STORYBOARD_FILE};${ICON_FILES}"
+    )
+else()
+    add_executable(${PROJECT_NAME} ${ALL_FILES})
+endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")
@@ -442,6 +468,23 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
         "SPDLOG_NO_TLS;"
 		"STBI_NO_THREAD_LOCALS;"
 	)
+elseif (${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
+	target_compile_definitions(${PROJECT_NAME} PRIVATE
+		"$<$<CONFIG:Debug>:"
+			"_DEBUG"
+		">"
+		"$<$<CONFIG:Release>:"
+			"NDEBUG"
+		">"
+		"SPDLOG_ACTIVE_LEVEL=0;"
+		"_CONSOLE;"
+		"_CRT_SECURE_NO_WARNINGS;"
+		"__IOS__;"
+		"UNICODE;"
+		"_UNICODE"
+        "NON_MATCHING;"
+        "NON_EQUIVALENT;"
+	)
 elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|AppleClang")
 	target_compile_definitions(${PROJECT_NAME} PRIVATE
 		"$<$<CONFIG:Debug>:"
@@ -475,10 +518,10 @@ if(MSVC)
             /Gy;
             /W3
         >
-		
+
 		/wd4024 #different types for formal and actual parameter [x]. Usually seen along side 4047.
 		/wd4047 #'uintptr_t' differs in levels of indirection from 'Gfx *'. Usually caused by passing a uintptr_t into a function expecting a pointer-types
-		/wd4090 #'initializing': different 'const' qualifiers. Caused when initializing a non const struct member with a const char*.		
+		/wd4090 #'initializing': different 'const' qualifiers. Caused when initializing a non const struct member with a const char*.
 		/wd4101 # unreferenced local variable. Things like stack pads.
 		/wd4133 #incompatible types. Usually caused by passing a c string into a function that takes a pointer.
 		/wd4244 #conversion from [a] to [b]. Used to warn when copying to smaller type without a cast.
@@ -506,7 +549,7 @@ if(MSVC)
 endif()
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
-    if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "iOS")
         target_compile_options(${PROJECT_NAME} PRIVATE
             -Wall -Wextra -Wno-error
             -Wno-return-type
@@ -612,7 +655,7 @@ endif()
 ################################################################################
 # Pre build events
 ################################################################################
-if(NOT CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS")
+if(NOT CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS|iOS")
     add_custom_command(
 		TARGET ${PROJECT_NAME}
 		POST_BUILD
@@ -632,7 +675,7 @@ endif()
 add_dependencies(${PROJECT_NAME}
     libultraship
 )
-if(NOT CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS")
+if(NOT CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS|iOS")
 add_dependencies(${PROJECT_NAME}
     ZAPDLib
 )
@@ -663,6 +706,13 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
         -lglad
         Threads::Threads
     )
+elseif(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
+    set(ADDITIONAL_LIBRARY_DEPENDENCIES
+        "libultraship;"
+        Threads::Threads
+    )
 elseif(CMAKE_SYSTEM_NAME STREQUAL "CafeOS")
     find_package(SDL2 REQUIRED)
     set(ADDITIONAL_LIBRARY_DEPENDENCIES
@@ -688,7 +738,7 @@ else()
 	)
 endif()
 
-if(NOT CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS")
+if(NOT CMAKE_SYSTEM_NAME MATCHES "NintendoSwitch|CafeOS|iOS")
 INSTALL(TARGETS 2ship DESTINATION . COMPONENT 2s2h)
 endif()
 
