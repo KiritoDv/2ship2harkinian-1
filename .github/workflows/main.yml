@@ -388,10 +388,10 @@ jobs:
       uses: hendrikmuhs/ccache-action@v1.2.13
       with:
         create-symlink: true
-        key: ${{ runner.os }}-14-ccache-${{ github.ref }}-${{ github.sha }}
+        key: ${{ runner.os }}-ios-14-ccache-${{ github.ref }}-${{ github.sha }}
         restore-keys: |
-          ${{ runner.os }}-14-ccache-${{ github.ref }}
-          ${{ runner.os }}-14-ccache-
+          ${{ runner.os }}-ios-14-ccache-${{ github.ref }}
+          ${{ runner.os }}-ios-14-ccache-
     # Needed to apply sudo for macports cache restore
     - name: Install gtar wrapper
       run: |
