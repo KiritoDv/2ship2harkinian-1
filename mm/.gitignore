@@ -41,6 +41,7 @@ tools/mips_to_c/
 
 # Assets
 *.png
+!ios/*.png
 *.jpg
 !*_custom*
 .extracted-assets.json

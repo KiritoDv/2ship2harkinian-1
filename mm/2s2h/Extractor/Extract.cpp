@@ -604,7 +604,9 @@ bool Extractor::CallZapd(std::string installPath, std::string exportdir) {
                              nullptr);
 #endif
 
+#ifndef __IOS__
     zapd_main(argc, (char**)argv.data());
+#endif
 
 #ifdef _WIN32
     // Hide the command window again.

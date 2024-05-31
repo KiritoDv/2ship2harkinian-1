@@ -41,17 +41,21 @@ PadMgr gPadMgr;
 #include "system_heap.h"
 #include "z64thread.h"
 
+#ifdef __IOS__
+#include <SDL_main.h>
+#endif
+
 s32 gScreenWidth = SCREEN_WIDTH;
 s32 gScreenHeight = SCREEN_HEIGHT;
 size_t gSystemHeapSize = 0;
 
 void InitOTR();
 
-#ifdef __GNUC__
-#define SDL_main main
+#ifdef _WIN32
+int SDL_main(int argc, char **argv) {
+#else
+int main(int argc, char *argv[]) {
 #endif
-
-void SDL_main(int argc, char** argv /* void* arg*/) {
     intptr_t fb;
     intptr_t sysHeap;
     s32 exit;

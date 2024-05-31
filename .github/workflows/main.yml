@@ -378,3 +378,62 @@ jobs:
       with:
         name: 2ship-windows
         path: 2ship-windows
+
+  build-ios:
+    needs: generate-2ship-otr
+    runs-on: macos-14
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: true
+    - name: ccache
+      uses: hendrikmuhs/ccache-action@v1.2.13
+      with:
+        create-symlink: true
+        key: ${{ runner.os }}-ios-14-ccache-${{ github.ref }}-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-ios-14-ccache-${{ github.ref }}
+          ${{ runner.os }}-ios-14-ccache-
+    # Needed to apply sudo for macports cache restore
+    - name: Install gtar wrapper
+      run: |
+        sudo mv /opt/homebrew/bin/gtar /opt/homebrew/bin/gtar.orig
+        sudo cp .github/workflows/gtar /opt/homebrew/bin/gtar
+        sudo chmod +x /opt/homebrew/bin/gtar
+    - name: Install MacPorts (if necessary)
+      run: |
+        if [ command -v port &>/dev/null ]; then
+          echo "MacPorts already installed"
+        else
+          wget https://github.com/macports/macports-base/releases/download/v2.9.3/MacPorts-2.9.3-14-Sonoma.pkg
+          sudo installer -pkg ./MacPorts-2.9.3-14-Sonoma.pkg -target /
+        fi
+        echo "/opt/local/bin:/opt/local/sbin" >> $GITHUB_PATH
+    - name: Install dependencies
+      run: |
+        brew uninstall --ignore-dependencies libpng
+        brew install ninja
+    - name: Download 2ship.o2r
+      uses: actions/download-artifact@v4
+      with:
+        name: 2ship.o2r
+        path: build-cmake/mm
+    - name: Build 2Ship
+      run: |
+        export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+        cmake --no-warn-unused-cli -H. -Bbuild-ios -GXcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 -DCMAKE_BUILD_TYPE:STRING=Release
+        cd build-ios
+        xcodebuild -scheme "2ship" archive -archivePath 2ship.xcarchive
+        mkdir Payload
+        cp -r 2ship.xcarchive/Products/Applications/2ship.app Payload/
+        zip -r 2ship.ipa Payload
+        cd ..
+        mv build-ios/2ship.ipa ./2Ship.ipa
+        mv README.md readme.txt
+    - name: Upload build
+      uses: actions/upload-artifact@v4
+      with:
+        name: 2ship-ios
+        path: |
+          2Ship.ipa
+          readme.txt
